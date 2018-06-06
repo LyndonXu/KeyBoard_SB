@@ -1,4 +1,8 @@
-# Prerequisites
+
+*.dbgconf
+*.lst
+*.map
+*.crf
 *.d
 
 # Object files
@@ -34,7 +38,7 @@
 *.app
 *.i*86
 *.x86_64
-*.hex
+#*.hex
 
 # Debug files
 *.dSYM/
@@ -50,3 +54,13 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+*.axf
+*.htm
+*.lnp
+*.sct
+*.dep
+RTE_Components.h
+*.iex
+
+*.html

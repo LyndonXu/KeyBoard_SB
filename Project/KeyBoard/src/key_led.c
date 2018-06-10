@@ -70,7 +70,13 @@ GPIO_TypeDef *const c_pKeyLedPowerPort[KEY_Y_CNT] =
     KEY_LED_POWER_PORT_8,
     KEY_LED_POWER_PORT_9,
     KEY_LED_POWER_PORT_10,
-	
+	KEY_LED_POWER_PORT_11,
+	KEY_LED_POWER_PORT_12,
+	KEY_LED_POWER_PORT_13,
+	KEY_LED_POWER_PORT_14,
+	KEY_LED_POWER_PORT_15,
+	KEY_LED_POWER_PORT_16,
+
 };
 
 const u16 c_u16KeyLedPowerPin[KEY_Y_CNT] = 
@@ -85,6 +91,12 @@ const u16 c_u16KeyLedPowerPin[KEY_Y_CNT] =
     KEY_LED_POWER_8,
     KEY_LED_POWER_9,
     KEY_LED_POWER_10,
+	KEY_LED_POWER_11,
+	KEY_LED_POWER_12,
+	KEY_LED_POWER_13,
+	KEY_LED_POWER_14,
+	KEY_LED_POWER_15,
+	KEY_LED_POWER_16,
 	
 };
 
@@ -98,8 +110,15 @@ GPIO_TypeDef *const c_pLedInPort[LED_X_CNT] =
 	LED_X_PORT_5,		
 	LED_X_PORT_6,		
 	LED_X_PORT_7,		
-	LED_X_PORT_8,		
-
+	LED_X_PORT_8,
+	LED_X_PORT_9,
+    LED_X_PORT_10,
+    LED_X_PORT_11,
+    LED_X_PORT_12,
+    LED_X_PORT_13,
+    LED_X_PORT_14,
+    LED_X_PORT_15,
+	LED_X_PORT_16,
 };
 
 const u16 c_u16LedInPin[LED_X_CNT] = 
@@ -111,13 +130,23 @@ const u16 c_u16LedInPin[LED_X_CNT] =
 	LED_X_5,		
 	LED_X_6,		
 	LED_X_7,		
-	LED_X_8,			
+	LED_X_8,	
+	LED_X_9	,
+    LED_X_10,
+    LED_X_11,
+    LED_X_12,
+    LED_X_13,
+    LED_X_14,
+    LED_X_15,
+    LED_X_16,
+
 };
 
 
 const u8 c_u8KeyPowerUsedMap[KEY_Y_CNT] = 
 {
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+	0, 1,  2,  3,  4,  5,  6,  7, 
+	8, 9, 10, 11, 12, 13, 14, 15,
 };
 
 #define POWER_PIN_HAS_NULL		0

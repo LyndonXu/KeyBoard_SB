@@ -692,12 +692,14 @@ bool RedressPushRodLimit (StIOFIFO *pFIFO)
 		if (pKeyIn == NULL)
 		{
 			KeyBufGetEnd(pFIFO);
+			pFIFO = NULL;
 			continue;
 		}
 
 		if (pKeyIn->emKeyType != _Key_Board)
 		{
 			KeyBufGetEnd(pFIFO);
+			pFIFO = NULL;
 			continue;
 		}
 		pKey = &(pKeyIn->unKeyMixIn.stKeyState[0]);

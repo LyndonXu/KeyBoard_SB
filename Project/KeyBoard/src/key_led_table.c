@@ -20,6 +20,95 @@ u8 g_u8KeyTable[KEY_Y_CNT][KEY_X_CNT] =
 		_Key_Record_Stop,
 		
 		_Key_Fun_Reserved1,
+	},	/* 2 */
+	{
+		_Key_Fun_CG1,
+		_Key_Fun_CG2,
+		_Key_Fun_CG3,
+		_Key_Fun_CG4,
+	},	/* 3 */
+	{
+		_Key_PGM_9,
+		_Key_PGM_10,
+		_Key_PGM_11,
+		_Key_PGM_12,
+	},	/* 4 */
+	{
+		_Key_PVW_1,
+		_Key_PVW_2,
+		_Key_PVW_3,
+		_Key_PVW_4,
+	},	/* 5 */
+	{
+		_Key_PGM_1,
+		_Key_PGM_2,
+		_Key_PGM_3,
+		_Key_PGM_4,
+	}, /* 6 */
+	{
+		_Key_Cam_2,
+		_Key_Cam_4,
+		_Key_Cam_Ctrl_Wide,
+	
+	}, /* 7 */
+	{
+		_Key_Cam_1,
+		_Key_Cam_3,
+		_Key_Cam_Ctrl_Tele,
+	
+	}, /* 8 */
+	{
+		_Key_Effect_1,
+		_Key_Effect_3,
+		_Key_Effect_5,
+		_Key_Effect_Ctrl_Cut,
+	}, /* 9 */
+	{
+		_Key_Effect_2,
+		_Key_Effect_4,
+		_Key_Effect_6,
+		_Key_Effect_Ctrl_Take,
+	}, /* 10 */
+	{	
+		0, 0, 0, 0,
+		_Key_Fun_Reserved2,
+		_Key_Fun_Reserved3,
+	},	/* 11 */
+	{
+		0, 0, 0, 0,
+		_Key_Fun_CG5,
+		_Key_Fun_CG6,
+	},	/* 12 */
+	{
+		0, 0, 0, 0,
+		_Key_PVW_5,
+		_Key_PVW_6,
+		_Key_PVW_7,
+		_Key_PVW_8,
+	},	/* 13 */
+	{
+		0, 0, 0, 0,
+		_Key_PGM_5,
+		_Key_PGM_6,
+		_Key_PGM_7,
+		_Key_PGM_8,
+	
+	}, /* 14 */
+
+#if 0
+	{
+		_Key_PVW_9,
+		_Key_PVW_10,
+		_Key_PVW_11,
+		_Key_PVW_12,	
+
+	},	/* 1 */
+	{
+		_Key_Record_Record,
+		_Key_Record_Pause,
+		_Key_Record_Stop,
+		
+		_Key_Fun_Reserved1,
 		_Key_Fun_Reserved2,
 		_Key_Fun_Reserved3,
 	},	/* 2 */
@@ -82,6 +171,7 @@ u8 g_u8KeyTable[KEY_Y_CNT][KEY_X_CNT] =
 		_Key_Effect_6,
 		_Key_Effect_Ctrl_Take,
 	}, /* 10 */
+#endif
 };
 
 /* dp, g, f, e, d, c, b, a */

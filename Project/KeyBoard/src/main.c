@@ -132,7 +132,7 @@ int main()
 	}
 #endif	
 
-	ChangeAllLedState(false);
+	//ChangeAllLedState(false);
 	GlobalStateInit();
 	do 
 	{

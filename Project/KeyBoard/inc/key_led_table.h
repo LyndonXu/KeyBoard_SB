@@ -194,7 +194,22 @@ enum
 	
 	_Led_White_Effect_Ctrl_Take = LOC(8, 10),
 	_Led_White_Effect_Ctrl_Cut = LOC(8, 9),
+	
+	_Led_TPush_1 = LOC(9, 16),
+	_Led_TPush_2 = LOC(10, 16),
+	_Led_TPush_3 = LOC(11, 16),
+	_Led_TPush_4 = LOC(12, 16),
+	_Led_TPush_5 = LOC(13, 16),
+	_Led_TPush_6 = LOC(14, 16),
+	_Led_TPush_7 = LOC(15, 16),	
+	_Led_TPush_8 = LOC(16, 16),
+	_Led_TPush_9 = LOC(9, 15),
+	_Led_TPush_10 = LOC(10, 15),
+	_Led_TPush_11 = LOC(11, 15),
+	_Led_TPush_12 = LOC(12, 15),
 };
+
+extern const u16 c_u16LedGlobalDoubleColorArr[8][8]; 
 
 #endif
 

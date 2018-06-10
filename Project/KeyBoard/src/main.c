@@ -87,7 +87,11 @@ int main()
 			{
 				u32RedressTime = g_u32SysTickCnt;
 			}
-			else
+			else if (BackgroundLightEnableChange(pKeyIn))
+			{
+				u32RedressTime = g_u32SysTickCnt;
+			}
+			else 
 			{
 				KeyBufGetEnd(pKeyIn);				
 			}		
@@ -132,8 +136,9 @@ int main()
 	}
 #endif	
 
-	//ChangeAllLedState(false);
+	ChangeAllLedState(false);
 	GlobalStateInit();
+	BackgroundLightEnable(true);
 	do 
 	{
 		void *pFIFO = KeyBufGetBuf();

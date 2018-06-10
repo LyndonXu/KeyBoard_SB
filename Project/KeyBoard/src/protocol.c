@@ -54,6 +54,8 @@ bool g_boIsRockAus = false;
 bool g_boIsRockEnable = true;
 
 EmProtocol g_emProtocol = _Protocol_YNA;
+bool g_boIsBackgroundLightEnable = true;
+
 const u16 g_u16CamLoc[CAM_ADDR_MAX] = 
 {
 	0,
@@ -1158,6 +1160,184 @@ bool ProtocolSelect(StIOFIFO *pFIFO)
 }
 
 
+bool BackgroundLightEnableChange(StIOFIFO *pFIFO)
+{
+	const u8 u8KeyMap[] = 
+	{
+		_Key_PGM_1, _Key_PGM_2
+	};
+	const u16 u16LedMap[] = 
+	{
+		_Led_PGM_1, _Led_PGM_2
+	};
+	
+	u32 u32MsgSentTime;
+	u32 u32State = 0;
+	StKeyMixIn *pKeyIn;
+	StKeyState *pKey;
+	
+	if (pFIFO == NULL)
+	{
+		return false;
+	}
+		
+	pKeyIn = pFIFO->pData;
+	if (pKeyIn == NULL)
+	{
+		return false;
+	}
+
+	if (pKeyIn->emKeyType != _Key_Board)
+	{
+		return false;
+	}
+	
+	pKey = &(pKeyIn->unKeyMixIn.stKeyState[0]);
+	if (pKey->u8KeyValue != (u8)_Key_PVW_2)
+	{
+		return false;		
+	}
+
+
+	ChangeAllLedState(false);
+	
+	u32MsgSentTime = g_u32SysTickCnt;
+	while(1)
+	{
+		if (pKeyIn != NULL)
+		{
+			pKey = &(pKeyIn->unKeyMixIn.stKeyState[0]);
+			if (u32State == 0)
+			{
+				if (pKey->u8KeyValue == (u8)_Key_PVW_2)
+				{
+					u32MsgSentTime = g_u32SysTickCnt;
+					if (pKey->u8KeyState == KEY_DOWN)
+					{
+						ChangeAllLedState(false);
+						ChangeLedState(GET_XY(_Led_PVW_2), true);
+					}
+					else if (pKey->u8KeyState == KEY_UP)
+					{
+						u32State = 1;
+					}
+				}			
+			}
+			else if (u32State == 1)
+			{
+				u32 u32Index = ~0;
+				u32 i;
+				for (i = 0; i < sizeof(u8KeyMap); i++)
+				{
+					if (pKey->u8KeyValue == u8KeyMap[i])
+					{
+						u32Index = i;
+						break;
+					}						
+				}
+				if (u32Index != ~0)
+				{
+					u32MsgSentTime = g_u32SysTickCnt;
+					if (pKey->u8KeyState == KEY_DOWN)
+					{
+						ChangeLedState(GET_XY(u16LedMap[u32Index]), true);
+					}
+					else if (pKey->u8KeyState == KEY_UP)
+					{
+						ChangeLedState(GET_XY(u16LedMap[u32Index]), false);
+						u32State = 2 + u32Index;
+						break;
+					}
+				}
+			}
+		}
+		
+		KeyBufGetEnd(pFIFO);
+		
+		pFIFO = NULL;
+		
+		if (SysTimeDiff(u32MsgSentTime, g_u32SysTickCnt) > 5000) /* 10S */
+		{
+			ChangeAllLedState(false);
+			return true;
+		}
+
+		
+		pKeyIn = NULL;
+		pFIFO = KeyBufGetBuf();
+		if (pFIFO == NULL)
+		{
+			continue;
+		}
+		
+		pKeyIn = pFIFO->pData;
+		if (pKeyIn == NULL)
+		{
+			KeyBufGetEnd(pFIFO);
+			pFIFO = NULL;
+			continue;
+		}
+
+		if (pKeyIn->emKeyType != _Key_Board)
+		{
+			pKeyIn = NULL;
+			KeyBufGetEnd(pFIFO);
+			pFIFO = NULL;
+			continue;
+		}	
+	}
+	
+	
+	KeyBufGetEnd(pFIFO);
+	
+	
+	if (u32State >= 2)
+	{
+		switch (u32State)
+		{
+			case 2:
+			{
+				g_boIsBackgroundLightEnable = true;
+				break;
+			}
+			case 3:
+			{
+				g_boIsBackgroundLightEnable = false;
+				break;
+			}
+			default:
+				break;
+		}
+		
+		
+		if (WriteSaveData())
+		{
+			u32MsgSentTime = g_u32SysTickCnt;
+			ChangeAllLedState(true);
+			while(SysTimeDiff(u32MsgSentTime, g_u32SysTickCnt) < 1500);/* ÑÓÊ±1s */
+			ChangeAllLedState(false);
+			return true;
+		}
+
+		{
+			bool boBlink = true;
+			u32 u32BlinkCnt = 0;
+			while (u32BlinkCnt < 10)
+			{
+				boBlink = !boBlink;
+				ChangeLedState(GET_XY(_Led_PVW_2), boBlink);
+				u32MsgSentTime = g_u32SysTickCnt;
+				while(SysTimeDiff(u32MsgSentTime, g_u32SysTickCnt) < 100);/* ÑÓÊ±1s */
+				u32BlinkCnt++;
+			}
+		}	
+	}
+	
+	ChangeAllLedState(false);
+	return false;
+}
+
+
 void TallyUartSend(u8 Tally1, u8 Tally2)
 {
 	u32 i, j;
@@ -1360,7 +1540,7 @@ static bool KeyBoardProcess(StKeyMixIn *pKeyIn)
 				if (pKeyState->u8KeyState == KEY_DOWN)
 				{
 					u8 u8Cmd;
-					ChangeLedState(GET_XY(_Led_Cam_Ctrl_Tele), true);
+					ChangeLedStateWithBackgroundLight(GET_XY(_Led_Cam_Ctrl_Tele), true);
 					u8Cmd = u8KeyValue - _Key_Cam_Ctrl_Tele + 1;
 					pBuf[_YNA_Cmd] = u8Cmd << 4;
 					pBuf[_YNA_Data3] = 0x0F;
@@ -1369,7 +1549,7 @@ static bool KeyBoardProcess(StKeyMixIn *pKeyIn)
 				{
 					pBuf[_YNA_Data1] = 0x00;
 
-					ChangeLedState(GET_XY(_Led_Cam_Ctrl_Tele), false);
+					ChangeLedStateWithBackgroundLight(GET_XY(_Led_Cam_Ctrl_Tele), false);
 
 				}
 				break;
@@ -1379,7 +1559,7 @@ static bool KeyBoardProcess(StKeyMixIn *pKeyIn)
 				if (pKeyState->u8KeyState == KEY_DOWN)
 				{
 					u8 u8Cmd;
-					ChangeLedState(GET_XY(_Led_Cam_Ctrl_Wide), true);
+					ChangeLedStateWithBackgroundLight(GET_XY(_Led_Cam_Ctrl_Wide), true);
 					u8Cmd = u8KeyValue - _Key_Cam_Ctrl_Tele + 1;
 					pBuf[_YNA_Cmd] = u8Cmd << 4;
 					pBuf[_YNA_Data3] = 0x0F;					
@@ -1387,7 +1567,7 @@ static bool KeyBoardProcess(StKeyMixIn *pKeyIn)
 				else
 				{
 					pBuf[_YNA_Data1] = 0x00;
-					ChangeLedState(GET_XY(_Led_Cam_Ctrl_Wide), false);
+					ChangeLedStateWithBackgroundLight(GET_XY(_Led_Cam_Ctrl_Wide), false);
 				}
 				break;
 			}
@@ -1414,7 +1594,7 @@ static bool KeyBoardProcess(StKeyMixIn *pKeyIn)
 			{
 				pBuf[_YNA_Cmd] = 0x48;
 				pBuf[_YNA_Data2] = u8KeyValue - _Key_Effect_Ctrl_Take;	
-				ChangeLedState(GET_XY(_Led_Effect_Ctrl_Cut), !pBuf[_YNA_Data1]);						
+				ChangeLedStateWithBackgroundLight(GET_XY(_Led_Effect_Ctrl_Cut), !pBuf[_YNA_Data1]);						
 				break;
 			}
 
@@ -1626,7 +1806,7 @@ static bool RockProcess(StKeyMixIn *pKeyIn)
 				u8Buf[4] = 0x20 + u32Tmp;
 				u8Buf[5] = 0xFF;
 				CopyToUart2Message(u8Buf, 6);			
-				boViscaNeedSendZoomStopCmd = true;
+					boViscaNeedSendZoomStopCmd = true;
 			}
 			
 		}
@@ -1638,6 +1818,48 @@ static bool RockProcess(StKeyMixIn *pKeyIn)
 	}
 	return true;
 }
+
+void TPushTurnLight(u32 u32RawValue)
+{
+	const u16 u16Led[] = 
+	{
+		_Led_TPush_1 ,
+		_Led_TPush_2 ,
+		_Led_TPush_3 ,
+		_Led_TPush_4 ,
+		_Led_TPush_5 ,
+		_Led_TPush_6 ,
+		_Led_TPush_7 ,
+		_Led_TPush_8 ,
+		_Led_TPush_9 ,
+		_Led_TPush_10,
+		_Led_TPush_11,
+		_Led_TPush_12,
+	};
+	
+	u32 i;
+	for (i = 0; i < (sizeof(u16Led) / sizeof(u16)); i++)
+	{
+		ChangeLedState(GET_XY(u16Led[i]), false);
+	}
+	
+	if (u32RawValue != (~0))
+	{
+		u32 u32Index = u32RawValue * 
+			((sizeof(u16Led) / sizeof(u16))) / 
+			PUSH_ROD_MAX_VALUE;
+		if (u32Index >= (sizeof(u16Led) / sizeof(u16)))
+		{
+			u32Index -= 1;
+		}
+		
+		ChangeLedState(GET_XY(u16Led[u32Index]), true);
+
+	}
+	
+}
+
+
 static bool PushPodProcess(StKeyMixIn *pKeyIn)
 {
 	u8 *pBuf;
@@ -1660,6 +1882,7 @@ static bool PushPodProcess(StKeyMixIn *pKeyIn)
 	pBuf[_YNA_Data2] = pKeyIn->unKeyMixIn.u32PushRodValue;
 	YNAGetCheckSum(pBuf);
 	CopyToUartMessage(pBuf, PROTOCOL_YNA_DECODE_LENGTH);
+	TPushTurnLight(pKeyIn->unKeyMixIn.u32PushRodValue);
 	return true;
 }
 
@@ -1758,71 +1981,7 @@ static bool s_boIsDataUpdateForSB = false;
 
 static u8 s_u8BtnBackupForSB[8] = {0};
 static u8 s_u8LedBackupForSB[8] = {0};
-const u16 c_u16LedArrForSB[8][8] = 
-{
-	_Led_Record_Record,
-	_Led_Record_Pause,
-	_Led_Record_Stop,
-	
-	_Led_Fun_Reserved1,
-	_Led_Fun_Reserved2,
-	_Led_Fun_Reserved3,		/* 6*/
-	
-	_Led_Fun_CG1,
-	_Led_Fun_CG2,
-	_Led_Fun_CG3,
-	_Led_Fun_CG4,
-	_Led_Fun_CG5,	
-	_Led_Fun_CG6,			/* 12 */
-	
-	_Led_PGM_1,				
-	_Led_PGM_2,
-	_Led_PGM_3,
-	_Led_PGM_4,
-	_Led_PGM_5,
-	_Led_PGM_6,
-	_Led_PGM_7,
-	_Led_PGM_8,
-	_Led_PGM_9,
-	_Led_PGM_10,
-	_Led_PGM_11,
-	_Led_PGM_12,		/* 24 */
 
-
-	_Led_PVW_1,
-	_Led_PVW_2,
-	_Led_PVW_3,
-	_Led_PVW_4,
-	_Led_PVW_5,
-	_Led_PVW_6,
-	_Led_PVW_7,
-	_Led_PVW_8,
-	_Led_PVW_9,
-	_Led_PVW_10,
-	_Led_PVW_11,
-	_Led_PVW_12,		/* 36 */	
-
-	_Led_Cam_1,
-	_Led_Cam_2,
-	_Led_Cam_3,
-	_Led_Cam_4,
-	
-	_Led_Cam_Ctrl_Tele,
-	_Led_Cam_Ctrl_Wide,	/* 42 */
-
-	_Led_Effect_1,
-	_Led_Effect_2,
-	_Led_Effect_3,
-	_Led_Effect_4,
-	_Led_Effect_5,
-	_Led_Effect_6,		/* 48 */
-	
-	_Led_Effect_Ctrl_Take,
-	_Led_Effect_Ctrl_Cut,		/* 50 */
-	
-	0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 
-	0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,  
-};
 void SBUpdateLed(void)
 {
 	u32 i, j;
@@ -1831,7 +1990,7 @@ void SBUpdateLed(void)
 	{
 		for (j = 0; j < 8; j++)
 		{
-			u16 u16Led = c_u16LedArrForSB[i][j];
+			u16 u16Led = c_u16LedGlobalDoubleColorArr[i][j];
 			bool boIsLight;
 			if (u16Led == 0xFFFF)
 			{
@@ -1841,11 +2000,11 @@ void SBUpdateLed(void)
 			boIsLight = (((s_u8LedBackupForSB[i] >> j) & 0x01) == 0) ? false : true;
 			if (boIsLight)
 			{
-				ChangeLedState(GET_XY(u16Led), true);
+				ChangeLedStateWithBackgroundLight(GET_XY(u16Led), true);
 			}
 			else
 			{
-				ChangeLedState(GET_XY(u16Led), false);
+				ChangeLedStateWithBackgroundLight(GET_XY(u16Led), false);
 			}
 			
 			{/* tally */
@@ -2031,6 +2190,9 @@ static bool PushPodProcessForSB(StKeyMixIn *pKeyIn)
 	
 	SBGetCheckSum(pBuf);
 	CopyToUartMessage(pBuf, PROTOCOL_SB_LENGTH);
+	
+	
+	TPushTurnLight(pKeyIn->unKeyMixIn.u32PushRodValue);
 
 	return true;
 }
@@ -2074,6 +2236,7 @@ bool KeyProcess(StIOFIFO *pFIFO)
 	{
 		return false;
 	}
+	
 	if (s_KeyProcessArr[pKeyIn->emKeyType] != NULL)
 	{
 		if (g_emProtocol == _Protocol_YNA)
@@ -2093,7 +2256,7 @@ static void ChangeLedArrayState(const u16 *pLed, u16 u16Cnt, bool boIsLight)
 	u16 i;
 	for (i = 0; i < u16Cnt; i++)
 	{
-		ChangeLedState(GET_XY(pLed[i]), boIsLight);
+		ChangeLedStateWithBackgroundLight(GET_XY(pLed[i]), boIsLight);
 	}
 }
 
@@ -2131,7 +2294,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 			if (pMsg[_YNA_Data2] < 4)
 			{
 				ChangeLedArrayState(u16Led, sizeof(u16Led) / sizeof(u16), false);
-				ChangeLedState(GET_XY(u16Led[pMsg[_YNA_Data2]]), boIsLight);
+				ChangeLedStateWithBackgroundLight(GET_XY(u16Led[pMsg[_YNA_Data2]]), boIsLight);
 			}
 			break;
 		}
@@ -2154,7 +2317,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 			if ((pMsg[_YNA_Data2] <= 5) && (pMsg[_YNA_Data2] >= 2))
 			{
 				ChangeLedArrayState(u16Led, sizeof(u16Led) / sizeof(u16), false);
-				ChangeLedState(GET_XY(u16Led[pMsg[_YNA_Data2] - 2]), boIsLight);
+				ChangeLedStateWithBackgroundLight(GET_XY(u16Led[pMsg[_YNA_Data2] - 2]), boIsLight);
 			}
 			break;
 		}
@@ -2178,14 +2341,14 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 			{
 				case 0x00:
 				{
-					ChangeLedState(GET_XY(_Led_Effect_Ctrl_Take), boIsLight);						
+					ChangeLedStateWithBackgroundLight(GET_XY(_Led_Effect_Ctrl_Take), boIsLight);						
 					break;
 				}
 				case 0x02: case 0x03: case 0x04: case 0x05:
 				case 0x06: case 0x07:
 				{
 					ChangeLedArrayState(u16LedPGM, sizeof(u16LedPGM) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16LedPGM[pMsg[_YNA_Data2] - 0x02]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16LedPGM[pMsg[_YNA_Data2] - 0x02]), boIsLight);
 					if (pMsg[_YNA_Data1] == 1)
 					{
 						SetTallyPGM(pMsg[_YNA_Data2] - 0x02, boIsLight, true, true);
@@ -2196,7 +2359,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 				case 0x0C: case 0x0D: 
 				{
 					ChangeLedArrayState(u16LedPVW, sizeof(u16LedPVW) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16LedPVW[pMsg[_YNA_Data2] - 0x08]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16LedPVW[pMsg[_YNA_Data2] - 0x08]), boIsLight);
 					
 					if (pMsg[_YNA_Data1] == 1)
 						SetTallyPVW(pMsg[_YNA_Data2] - 0x08, boIsLight, true, true);
@@ -2215,14 +2378,14 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 						_Led_Effect_6,
 					};
 					ChangeLedArrayState(u16Led, sizeof(u16Led) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16Led[pMsg[_YNA_Data2] - 0x0E]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16Led[pMsg[_YNA_Data2] - 0x0E]), boIsLight);
 					break;
 				}
 				case 0x80: case 0x81: case 0x82: case 0x83:
 				case 0x84: case 0x85:
 				{
 					ChangeLedArrayState(u16LedPGM, sizeof(u16LedPGM) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16LedPGM[pMsg[_YNA_Data2] - 0x80 + 6]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16LedPGM[pMsg[_YNA_Data2] - 0x80 + 6]), boIsLight);
 					if (pMsg[_YNA_Data1] == 1)
 						SetTallyPGM(pMsg[_YNA_Data2] - 0x80 + 6, boIsLight, true, true);
 
@@ -2232,7 +2395,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 				case 0x94: case 0x95:
 				{
 					ChangeLedArrayState(u16LedPVW, sizeof(u16LedPVW) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16LedPVW[pMsg[_YNA_Data2] - 0x90 + 6]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16LedPVW[pMsg[_YNA_Data2] - 0x90 + 6]), boIsLight);
 					if (pMsg[_YNA_Data1] == 1)
 						SetTallyPVW(pMsg[_YNA_Data2] - 0x90 + 6, boIsLight, true, true);
 					break;
@@ -2268,7 +2431,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 						_Led_Fun_Reserved3,									
 					};
 					ChangeLedArrayState(u16Led, sizeof(u16Led) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16Led[u8Led - 0x80]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16Led[u8Led - 0x80]), boIsLight);
 					break;
 				}
 				case 0x90: case 0x91: case 0x92:
@@ -2284,7 +2447,7 @@ bool PCEchoProcessYNA(StIOFIFO *pFIFO)
 						_Led_Fun_CG6,
 					};
 					ChangeLedArrayState(u16Led, sizeof(u16Led) / sizeof(u16), false);
-					ChangeLedState(GET_XY(u16Led[u8Led - 0x90]), boIsLight);
+					ChangeLedStateWithBackgroundLight(GET_XY(u16Led[u8Led - 0x90]), boIsLight);
 					break;
 				}
 			}
@@ -2456,3 +2619,43 @@ bool PCEchoProcess(StIOFIFO *pFIFO)
 }
 
 
+void BackgroundLightEnable(bool boIsEnable)
+{
+	if (g_boIsBackgroundLightEnable)
+	{
+		u32 i, j;
+		for (i = 0; i < 8; i++)
+		{
+			for (j = 0; j < 8; j++)
+			{
+				u16 u16Led = c_u16LedGlobalDoubleColorArr[i][j];
+				if (u16Led == 0xFFFF)
+				{
+					continue;
+				}
+				
+				
+				{
+					u16 x = GET_X(u16Led) + 1;
+					u16 y = GET_Y(u16Led);
+					
+					ChangeLedState(x, y, boIsEnable);
+				}
+			}
+		}
+	}
+}
+
+
+void ChangeLedStateWithBackgroundLight(u32 x, u32 y, bool boIsLight)
+{
+	if (g_boIsBackgroundLightEnable)
+	{
+		if (x != 0xFF)
+		{
+			ChangeLedState(x + 1, y, !boIsLight);
+		}
+	}
+
+	ChangeLedState(x, y, boIsLight);
+}

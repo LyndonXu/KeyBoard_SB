@@ -120,6 +120,7 @@ typedef enum _tagEmProtocol
 }EmProtocol;
 
 extern EmProtocol g_emProtocol;
+extern bool g_boIsBackgroundLightEnable;
 
 #define PRINT_MFC(x, ...)
 
@@ -198,11 +199,16 @@ bool KeyProcess(StIOFIFO *pFIFO);
 bool PCEchoProcess(StIOFIFO *pFIFO);
 
 void TurnOnSwitchLed(void);
+
 bool ProtocolSelect(StIOFIFO *pFIFO);
+bool BackgroundLightEnableChange(StIOFIFO *pFIFO);
 
 void CopyToUartMessage(void *pData, u32 u32Length);
 void FlushHIDMsgForSB(void);
 
+
+void BackgroundLightEnable(bool boIsEnable);
+void ChangeLedStateWithBackgroundLight(u32 x, u32 y, bool boIsLight);
 
 #endif
 
